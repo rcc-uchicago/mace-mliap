@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=mace-mliap
-#SBATCH --partition=beagle3
-#SBATCH --constraint=a100
+#SBATCH --partition=gpu
+#SBATCH --constraint=a100|v100
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
@@ -9,7 +9,7 @@
 #SBATCH --mem=16G
 #SBATCH --time=00:10:00
 #SBATCH --output=run-%j.out
-#SBATCH --account=pi-gavoth         # workshop account
+##SBATCH --account=[your-pi-account]   # workshop account
 ##SBATCH --reservation=[reservation]   # workshop reservation
 
 # Usage:  sbatch run.sbatch                    (float64)

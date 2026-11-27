@@ -5,12 +5,11 @@
 You take a trained MACE model, convert it to an ML-IAP file, and run 100 MD steps
 of liquid water (128 H₂O, 384 atoms, 300 K) with `pair_style mliap unified` + KOKKOS.
 
-## 1. Get the files (login node, 2 min)
+## 1. Get the files (login node)
 
 ```bash
 git clone https://github.com/rcc-uchicago/mace-mliap.git
 cd mace-mliap-workshop
-source setup_env.sh
 ls
 ```
 
@@ -20,16 +19,16 @@ ls
 | `data/water_384_300K.data` | 128 H₂O, pre-equilibrated with this model at 300 K (includes velocities) |
 | `in.water.mliap` | LAMMPS input |
 | `run.sbatch` | Batch job: step 1 converts the model, step 2 runs LAMMPS |
-| `setup_env.sh` | Python env (torch, mace-torch, cuequivariance) + the LAMMPS build for the GPU type |
 
-## 2. The conversion command (3 min)
+## 2. The conversion command
 
 Step 1 of `run.sbatch` is the standard MACE converter:
 
 ```bash
 python -m mace.cli.create_lammps_model c-h2o.model --format mliap --dtype float64
-#   -> c-h2o.model-mliap_lammps.pt
 ```
+
+Arguments:
 
 - `--format mliap` writes a pickled `LAMMPS_MLIAP_MACE` Python object, which is
   what `pair_style mliap unified` loads. Without this flag you get a TorchScript
@@ -43,7 +42,7 @@ python -m mace.cli.create_lammps_model c-h2o.model --format mliap --dtype float6
   node still works but runs about 25× slower. That's why the conversion is
   inside the batch job.
 
-## 3. The input (3 min)
+## 3. The input script
 
 The important lines of `in.water.mliap`:
 
@@ -64,7 +63,9 @@ timestep      0.0005
 - The KOKKOS flags in `run.sbatch` (`-k on g 1 -sf kk -pk kokkos neigh half newton on`)
   are **required**. MACE's ML-IAP code only works with the KOKKOS version of ML-IAP.
 
-## 4. Submit (1 min)
+## 4. Submit job
+
+Adjust the job script `run.sbatch` for your eligible `account`.
 
 ```bash
 sbatch run.sbatch
@@ -74,7 +75,7 @@ squeue --me
 The job takes 1–1.5 min: ~15 s to convert, ~30 s of start-up (Python, CUDA,
 model load), and under 10 s of MD.
 
-## 5. Check the results (3 min)
+## 5. Check the results
 
 ```bash
 grep -A12 "^ *Step" log.float64.lammps          # thermo
@@ -88,7 +89,7 @@ grep -A8 "MPI task timing breakdown" log.float64.lammps
 - The first steps include warm-up. Judge speed from the `CPU` column after
   step 10: about 33 ms/step on an A100 and 46 ms/step on a V100.
 
-## 6. If you have time
+## 6. Other considerations
 
 1. **Single precision:** `sbatch --export=ALL,DTYPE=float32 run.sbatch`, then
    compare `log.float32.lammps` with `log.float64.lammps`. PotEng agrees to a
