@@ -20,7 +20,7 @@ ls
 | `in.water.mliap` | LAMMPS input |
 | `run.sbatch` | Batch job: step 1 converts the model, step 2 runs LAMMPS |
 
-## 2. The conversion command
+## 2. Convert MACE model to the LAMMPS MLIAP unified format
 
 Step 1 of `run.sbatch` is the standard MACE converter:
 
@@ -42,7 +42,7 @@ Arguments:
   node still works but runs about 25× slower. That's why the conversion is
   inside the batch job.
 
-## 3. The input script
+## 3. Specify the model in the input script
 
 The important lines of `in.water.mliap`:
 
@@ -63,7 +63,7 @@ timestep      0.0005
 - The KOKKOS flags in `run.sbatch` (`-k on g 1 -sf kk -pk kokkos neigh half newton on`)
   are **required**. MACE's ML-IAP code only works with the KOKKOS version of ML-IAP.
 
-## 4. Submit job
+## 4. Submit the job script
 
 Adjust the job script `run.sbatch` for your eligible `account`.
 
@@ -94,7 +94,7 @@ grep -A8 "MPI task timing breakdown" log.float64.lammps
 1. **Single precision:** `sbatch --export=ALL,DTYPE=float32 run.sbatch`, then
    compare `log.float32.lammps` with `log.float64.lammps`. PotEng agrees to a
    few meV, but the speed-up is small (~12% on an A100): 384 atoms is too few to
-   fill the GPU. For thousands of atoms float32 is ~1.6x faster.
+   fill the GPU. For thousands of atoms (try the `replicate` command) float32 could be ~1.6x faster.
 2. **Energy conservation:** replace the `fix nvt ...` line with `fix nve all nve`
    and watch `TotEng`; then try `timestep 0.001`.
 
