@@ -1,0 +1,30 @@
+# MACE water (128 H2O, 384 atoms) through ML-IAP unified + KOKKOS, 100 steps NVT at 300 K.
+# Launched by run.sbatch:
+#   mpirun -np 1 $LMP -in in.water.mliap -v model <file.pt> -k on g 1 -sf kk -pk kokkos neigh half newton on
+
+variable      model    index c-h2o-float64.model-mliap_lammps.pt
+variable      data     index data/water_384_300K.data
+variable      nsteps   index 100
+
+units         metal               # eV, Angstrom, ps
+boundary      p p p
+atom_style    full                # bonds/angles in the data file are ignored by the MLIP
+atom_modify   map yes
+newton        on
+
+read_data     ${data}             # includes velocities (pre-equilibrated at 300 K)
+
+# ML-IAP "unified": the .pt file is a pickled Python object that returns energies and pair forces.
+pair_style    mliap unified ${model} 0
+pair_coeff    * * H O             # atom type 1 -> H, type 2 -> O (names must be in the model)
+
+neighbor      2.0 bin
+neigh_modify  every 1 delay 0 check yes
+
+timestep      0.0005              # 0.5 fs
+fix           nvt all nvt temp 300.0 300.0 0.05
+
+thermo_style  custom step time temp pe ke etotal press cpu
+thermo        10
+
+run           ${nsteps}
